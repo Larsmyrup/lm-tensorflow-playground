@@ -8,6 +8,8 @@
     "lint": "vue-cli-service lint"
   },
   "dependencies": {
+    "@tensorflow/tfjs": "^2.8.3",
+    "@tensorflow/tfjs-vis": "^1.4.3",
     "core-js": "^3.6.5",
     "vue": "^2.6.11"
   },
@@ -31,6 +33,10 @@
     ],
     "parserOptions": {
       "parser": "babel-eslint"
+    },
+    "globals": {
+      "tf": true,
+      "tfvis": true
     },
     "rules": {}
   },
