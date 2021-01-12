@@ -1,8 +1,15 @@
 <script>
-import { render, show } from "@tensorflow/tfjs-vis";
+import * as tfvis from "@tensorflow/tfjs-vis";
 import { sequential, layers, tidy, util, train, losses, tensor2d, linspace } from '@tensorflow/tfjs';
 
 export default {
+  data() {
+    return {
+      rawData: null,
+      epochs: 10,
+      batchSize: 32,
+    };
+  },
   methods: {
     /**
      * Get the car data reduced to just the variables we are interested
@@ -16,16 +23,13 @@ export default {
         horsepower: car.Horsepower,
       })).filter(car => (car.mpg != null && car.horsepower != null));
     },
-
-    async run() {
-      // Load and plot the original input data that we are going to train on.
-      const data = await this.getData();
-      const values = data.map(d => ({
+    async plotData() {
+      const values = this.rawData.map(d => ({
         x: d.horsepower,
         y: d.mpg,
       }));
-      await render.scatterplot(
-          { name: 'Horsepower v MPG' },
+      await tfvis.render.scatterplot(
+          document.getElementById('data-container'),
           { values },
           {
             xLabel: 'Horsepower',
@@ -33,20 +37,25 @@ export default {
             height: 300,
           },
       );
+    },
+
+    async run() {
+      // Load and plot the original input data that we are going to train on.
+      this.rawData = await this.getData();
+      await this.plotData();
 
       // Create the model
       const model = this.createModel();
-      show.modelSummary({ name: 'Model Summary' }, model);
+      tfvis.show.modelSummary(document.getElementById('model-summary-container'), model);
 
       // Convert the data to a form we can use for training.
-      const tensorData = this.convertToTensor(data);
+      const tensorData = this.convertToTensor(this.rawData);
       const { inputs, labels } = tensorData;
 
       // Train the model
       await this.trainModel(model, inputs, labels);
-      console.log('Done Training');
 
-      this.testModel(model, data, tensorData);
+      this.testModel(model, this.rawData, tensorData);
     },
     createModel() {
       const model = sequential();
@@ -57,7 +66,7 @@ export default {
 
       model.add(layers.dense({ units: 1 }));
 
-      show.modelSummary({ name: 'Model Summary' }, model);
+      tfvis.show.modelSummary(document.getElementById('model-summary-container'), model);
 
       return model;
     },
@@ -134,9 +143,8 @@ export default {
         x: d.horsepower, y: d.mpg,
       }));
 
-
-      render.scatterplot(
-          { name: 'Model Predictions vs Original Data' },
+      tfvis.render.scatterplot(
+          document.getElementById('prediction-container'),
           { values: [originalPoints, predictedPoints], series: ['original', 'predicted'] },
           {
             xLabel: 'Horsepower',
@@ -153,29 +161,88 @@ export default {
         metrics: ['mse'],
       });
 
-      const batchSize = 32;
-      const epochs = 100;
-
+      const batchSize = this.batchSize;
+      const epochs = this.epochs;
       return await model.fit(inputs, labels, {
         batchSize,
         epochs,
         shuffle: true,
-        callbacks: show.fitCallbacks(
-            { name: 'Training Performance' },
+        callbacks: tfvis.show.fitCallbacks(
+            document.getElementById('training-performance-container'),
             ['loss', 'mse'],
             { height: 200, callbacks: ['onEpochEnd'] },
         ),
       });
     },
   },
-  mounted() {
-    this.run();
-  },
-
 }
 </script>
 <template>
-  <div>
+  <v-container>
+    <v-row>
+      <v-col>
+        <v-text-field
+            class="my-6"
+            label="Batch Size"
+            hide-details="auto"
+            :rules="[
+            value => !!value || 'Batch size is required.',
+            value => value > 0 || 'Batch size must be a positive whole number.',
+        ]"
+            v-model="epochs"
+        />
+      </v-col>
+      <v-col>
+        <v-text-field
+            class="my-6"
+            label="Epochs"
+            hide-details="auto"
+            :rules="[
+            value => !!value || 'Epochs is required.',
+            value => value > 0 || 'Epochs must be a positive whole number.',
+        ]"
+            v-model="batchSize"
+        />
+      </v-col>
+    </v-row>
+    <v-btn
+        elevation="2"
+        @click="run"
+    >
+      Train
 
-  </div>
+    </v-btn>
+    <h1
+        class="mx-4 my-6"
+    >
+      Data
+    </h1>
+    <div
+        id="data-container"
+    />
+    <h1
+        class="mx-4 my-6"
+    >
+      Model Summary
+    </h1>
+    <div
+        id="model-summary-container"
+    />
+    <h1
+        class="mx-4 my-6"
+    >
+      Training Performance
+    </h1>
+    <div
+        id="training-performance-container"
+    />
+    <h1
+        class="mx-4 my-6"
+    >
+      Prediction Data
+    </h1>
+    <div
+        id="prediction-container"
+    />
+  </v-container>
 </template>

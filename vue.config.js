@@ -1,13 +1,19 @@
-const path = require("path")
-const src = './src'
+const path = require('path');
 module.exports = {
   runtimeCompiler: true,
   configureWebpack: {
     resolve: {
       alias: {
-        "@": path.join(__dirname, src),
+        "@": path.resolve(__dirname, './src'),
       },
-      extensions: ['.js', '.vue', '.json'],
+      extensions: [
+        ".js",
+        ".vue",
+        ".json",
+      ],
     },
   },
+  transpileDependencies: [
+    "vuetify",
+  ],
 }
