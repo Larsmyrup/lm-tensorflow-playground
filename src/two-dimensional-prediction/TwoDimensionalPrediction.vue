@@ -189,7 +189,7 @@ export default {
             value => !!value || 'Batch size is required.',
             value => value > 0 || 'Batch size must be a positive whole number.',
         ]"
-            v-model="epochs"
+            v-model="batchSize"
         />
       </v-col>
       <v-col>
@@ -201,7 +201,7 @@ export default {
             value => !!value || 'Epochs is required.',
             value => value > 0 || 'Epochs must be a positive whole number.',
         ]"
-            v-model="batchSize"
+            v-model="epochs"
         />
       </v-col>
     </v-row>
