@@ -8,7 +8,11 @@ export default {
       rawData: null,
       epochs: 10,
       batchSize: 32,
+      model: null,
     };
+  },
+  mounted() {
+    this.getData();
   },
   methods: {
     /**
@@ -18,10 +22,12 @@ export default {
     async getData() {
       const carsDataResponse = await fetch('https://storage.googleapis.com/tfjs-tutorials/carsData.json');
       const carsData = await carsDataResponse.json();
-      return carsData.map(car => ({
+      this.rawData = carsData.map(car => ({
         mpg: car.Miles_per_Gallon,
         horsepower: car.Horsepower,
       })).filter(car => (car.mpg != null && car.horsepower != null));
+
+      await this.plotData();
     },
     async plotData() {
       const values = this.rawData.map(d => ({
@@ -38,33 +44,27 @@ export default {
           },
       );
     },
-
     async run() {
-      // Load and plot the original input data that we are going to train on.
-      this.rawData = await this.getData();
-      await this.plotData();
-
       // Create the model
-      const model = this.createModel();
-      tfvis.show.modelSummary(document.getElementById('model-summary-container'), model);
-
+      this.model = this.createModel();
       // Convert the data to a form we can use for training.
       const tensorData = this.convertToTensor(this.rawData);
       const { inputs, labels } = tensorData;
 
       // Train the model
-      await this.trainModel(model, inputs, labels);
+      await this.trainModel(this.model, inputs, labels);
 
-      this.testModel(model, this.rawData, tensorData);
+      this.testModel(this.model, this.rawData, tensorData);
     },
     createModel() {
+      this.model = null;
       const model = sequential();
 
-      model.add(layers.dense({ inputShape: [1], units: 1, useBias: true }));
+      model.add(layers.dense({ inputShape: [1], units: 1, name: 'layer_1' }));
 
-      model.add(layers.dense({ units: 1000, activation: 'sigmoid' }));
+      model.add(layers.dense({ units: 1000, activation: 'sigmoid', name: 'layer_2' }));
 
-      model.add(layers.dense({ units: 1 }));
+      model.add(layers.dense({ units: 1, name: 'layer_3' }));
 
       tfvis.show.modelSummary(document.getElementById('model-summary-container'), model);
 
@@ -206,6 +206,8 @@ export default {
       </v-col>
     </v-row>
     <v-btn
+        :disabled="!rawData"
+        color="primary"
         elevation="2"
         @click="run"
     >
