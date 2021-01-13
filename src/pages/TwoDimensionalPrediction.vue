@@ -1,6 +1,13 @@
 <script>
 import * as tfvis from "@tensorflow/tfjs-vis";
 import { sequential, layers, tidy, util, train, losses, tensor2d, linspace } from '@tensorflow/tfjs';
+import { cloneDeep } from 'lodash';
+
+const defaultDraftLayer = {
+  name: null,
+  activation: null,
+  units: null,
+};
 
 export default {
   data() {
@@ -8,12 +15,64 @@ export default {
       rawData: null,
       epochs: 10,
       batchSize: 32,
+      draftLayer: cloneDeep(defaultDraftLayer),
+      activationOptions: [
+        {
+          value: 'elu',
+          name: 'elu',
+        },
+        {
+          value: 'hard_sigmoid',
+          name: 'hard_sigmoid',
+        },
+        {
+          value: 'linear',
+          name: 'linear',
+        },
+        {
+          value: 'relu',
+          name: 'relu',
+        },
+        {
+          value: 'relu6',
+          name: 'relu6',
+        },
+        {
+          value: 'selu',
+          name: 'selu',
+        },
+        {
+          value: 'sigmoid',
+          name: 'sigmoid',
+        },
+        {
+          value: 'softmax',
+          name: 'softmax',
+        },
+        {
+          value: 'softplus',
+          name: 'softplus',
+        },
+        {
+          value: 'softsign',
+          name: 'softsign',
+        },
+        {
+          value: 'tanh',
+          name: 'tanh',
+        },
+      ],
       model: null,
+      inputLayer: { inputShape: [1], units: 1, name: 'input_layer' },
+      outputLayer: { units: 1, name: 'output_layer' },
+      middleLayers: [],
     };
-  },
+  }
+  ,
   mounted() {
     this.getData();
-  },
+  }
+  ,
   methods: {
     /**
      * Get the car data reduced to just the variables we are interested
@@ -60,11 +119,14 @@ export default {
       this.model = null;
       const model = sequential();
 
-      model.add(layers.dense({ inputShape: [1], units: 1, name: 'layer_1' }));
+      model.add(layers.dense(this.inputLayer));
 
-      model.add(layers.dense({ units: 1000, activation: 'sigmoid', name: 'layer_2' }));
+      this.middleLayers.forEach((layer) => {
+        model.add(layers.dense(layer));
+      });
 
-      model.add(layers.dense({ units: 1, name: 'layer_3' }));
+      model.add(layers.dense(this.outputLayer));
+
 
       tfvis.show.modelSummary(document.getElementById('model-summary-container'), model);
 
@@ -117,7 +179,7 @@ export default {
       // Generate predictions for a uniform range of numbers between 0 and 1;
       // We un-normalize the data by doing the inverse of the min-max scaling
       // that we did earlier.
-      const [xs, preds] = tidy(() => {
+      const [xs, predictions] = tidy(() => {
 
         const xs = linspace(0, 1, 100);
         const predictions = model.predict(xs.reshape([100, 1]));
@@ -136,7 +198,7 @@ export default {
 
 
       const predictedPoints = Array.from(xs).map((val, i) => {
-        return { x: val, y: preds[i] }
+        return { x: val, y: predictions[i] }
       });
 
       const originalPoints = inputData.map(d => ({
@@ -152,6 +214,10 @@ export default {
             height: 300,
           },
       );
+    },
+    onAddDraftToList() {
+      this.middleLayers.push(cloneDeep(this.draftLayer));
+      this.draftLayer = defaultDraftLayer;
     },
     async trainModel(model, inputs, labels) {
       // Prepare the model for training.
@@ -181,6 +247,15 @@ export default {
   <v-container>
     <v-row>
       <v-col>
+        <h1
+            class="mt-8"
+        >
+          Training Specifications
+        </h1>
+      </v-col>
+    </v-row>
+    <v-row>
+      <v-col>
         <v-text-field
             class="my-6"
             label="Batch Size"
@@ -205,10 +280,183 @@ export default {
         />
       </v-col>
     </v-row>
+    <v-row>
+      <v-col>
+        <h1
+            class="mt-8"
+        >
+          Layers
+        </h1>
+      </v-col>
+    </v-row>
+    <v-row>
+      <v-col>
+        <h2
+            class="mt-8"
+        >
+          Input Layer
+        </h2>
+      </v-col>
+    </v-row>
+
+    <v-row>
+      <v-col>
+        <v-text-field
+            label="Name"
+            :value="inputLayer.name"
+            readonly
+            dense
+        />
+      </v-col>
+      <v-col>
+        <v-text-field
+            label="Units"
+            :value="inputLayer.units"
+            readonly
+            dense
+        />
+      </v-col>
+    </v-row>
+
+    <v-divider
+        class="my-10"
+    />
+
+    <v-row>
+      <v-col>
+        <h2
+        >
+          Middle Layers
+        </h2>
+      </v-col>
+    </v-row>
+
+    <v-row
+        v-for="layer in middleLayers"
+        :key="layer.name"
+    >
+      <v-col>
+        <v-text-field
+            label="Name"
+            :value="layer.name"
+            dense
+            readonly
+        />
+      </v-col>
+      <v-col>
+        <v-text-field
+            label="Units"
+            :value="layer.units"
+            type="number"
+            dense
+            readonly
+        />
+      </v-col>
+      <v-col>
+        <v-select
+            label="Activation Function"
+            :items="activationOptions"
+            v-model="layer.activation"
+            dense
+            item-text="name"
+            item-value="value"
+            readonly
+        />
+      </v-col>
+      <v-col
+          cols="1"
+      >
+        <v-btn
+            icon
+        >
+          <v-icon>mdi-close-circle-outline</v-icon>
+        </v-btn>
+      </v-col>
+    </v-row>
+    <v-row
+    >
+      <v-col>
+        <v-text-field
+            label="Name"
+            v-model="draftLayer.name"
+            dense
+            :rules="[
+            value => !!value || 'Name is required.',
+            value => !middleLayers.indexOf(value) > -1 || 'Name must be unique',
+            ]"
+        />
+      </v-col>
+      <v-col>
+        <v-text-field
+            label="Units"
+            v-model.number="draftLayer.units"
+            type="number"
+            :rules="[
+            value => !!value || 'Units are required.',
+            value => value > 0 || 'Units must be a positive whole number.'
+            ]"
+            dense
+        />
+      </v-col>
+      <v-col>
+        <v-select
+            label="Activation Function"
+            :items="activationOptions"
+            dense
+            item-text="name"
+            item-value="value"
+            v-model="draftLayer.activation"
+        />
+      </v-col>
+      <v-col
+          cols="1"
+          @click="onAddDraftToList"
+      >
+        <v-btn
+            icon
+        >
+          <v-icon>mdi-check-circle-outline</v-icon>
+        </v-btn>
+      </v-col>
+    </v-row>
+    <v-divider
+        class="my-10"
+    />
+    <v-row>
+      <v-col>
+        <h2
+        >
+          Output Layer
+        </h2>
+      </v-col>
+    </v-row>
+    <v-row>
+      <v-col>
+        <v-text-field
+            label="Name"
+            :value="outputLayer.name"
+            readonly
+            dense
+        />
+      </v-col>
+      <v-col>
+        <v-text-field
+            label="Units"
+            :value="outputLayer.units"
+            readonly
+            dense
+        />
+      </v-col>
+    </v-row>
+
+
     <v-btn
+        class="my-6"
         :disabled="!rawData"
         color="primary"
         elevation="2"
+        large
+        block
         @click="run"
     >
       Train
