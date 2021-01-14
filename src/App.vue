@@ -3,7 +3,6 @@
     <v-app-bar
         class="app-bar"
         app
-        color="white"
         elevate-on-scroll
     >
       <v-btn
