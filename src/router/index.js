@@ -2,6 +2,7 @@ import Vue from 'vue'
 import VueRouter from 'vue-router'
 import Home from '@/pages/Home.vue'
 import TwoDimensionalPrediction from '@/pages/TwoDimensionalPrediction';
+import HandwrittenDigits from '@/pages/HandwrittenDigits';
 
 Vue.use(VueRouter)
 
@@ -19,6 +20,11 @@ const routes = [
     path: '/two-dimensional-prediction',
     name: 'TwoDimensionalPrediction',
     component: TwoDimensionalPrediction,
+  },
+  {
+    path: '/handwritten-digits',
+    name: 'HandwrittenDigits',
+    component: HandwrittenDigits,
   },
 ]
 
